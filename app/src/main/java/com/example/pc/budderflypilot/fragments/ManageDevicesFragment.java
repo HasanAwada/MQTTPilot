@@ -69,8 +69,11 @@ public class ManageDevicesFragment extends Fragment {
                 String macAddress = etMacAddress.getText() != null ? etMacAddress.getText().toString() : "";
                 Device device = new Device();
                 device.setMacAddress(macAddress);
+                device.setStatus(Device.UN_KNOWN);
+                device.setPowerConsump(0.0);
                 (new DeviceRepository(mainActivity)).create(device);
                 etMacAddress.setText("");
+                refreshView();
             }
         });
         initRecyclerView();

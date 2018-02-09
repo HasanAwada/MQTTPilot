@@ -9,11 +9,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.example.pc.budderflypilot.MainActivity;
 import com.example.pc.budderflypilot.R;
 import com.example.pc.budderflypilot.database.models.Device;
 import com.example.pc.budderflypilot.database.repositories.DeviceRepository;
+import com.example.pc.budderflypilot.utilities.BudderflyMessageSerializer;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
@@ -26,6 +29,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 
 
 public class ControlDevicesFragment extends Fragment {
@@ -38,7 +42,17 @@ public class ControlDevicesFragment extends Fragment {
     public static String CLIENT_ID = "12345";
     private static final String DEVICE_ID = "DEVICE_ID";
     private MqttAndroidClient mqttAndroidClient;
+
+    private DeviceRepository deviceRepository;
     private Device device;
+
+    private TextView tvDeviceId;
+    private TextView tvDeviceMacAddress;
+    private TextView tvDeviceStatus;
+
+    private Button btnGetMeasure;
+    private Button btnTurnOn;
+    private Button btnTurnOff;
 
     public ControlDevicesFragment() {
         // Required empty public constructor
@@ -69,7 +83,49 @@ public class ControlDevicesFragment extends Fragment {
         // Inflate the layout for this fragment
         if (mView == null)
             mView = inflater.inflate(R.layout.fragment_control_devices, container, false);
+        initViews();
+        initMQTT();
         return mView;
+    }
+
+    private void initViews() {
+        deviceRepository = new DeviceRepository(mainActivity);
+
+        tvDeviceId = (TextView) mView.findViewById(R.id.tvDeviceId);
+        tvDeviceMacAddress = (TextView) mView.findViewById(R.id.tvDeviceMacAddress);
+        tvDeviceStatus = (TextView) mView.findViewById(R.id.tvDeviceStatus);
+
+        btnGetMeasure = (Button) mView.findViewById(R.id.btnGetMeasure);
+        btnTurnOn = (Button) mView.findViewById(R.id.btnTurnOn);
+        btnTurnOff = (Button) mView.findViewById(R.id.btnTurnOff);
+
+        tvDeviceId.setText("" + device.getId());
+        tvDeviceMacAddress.setText("" + device.getMacAddress());
+        tvDeviceStatus.setText("" + device.getStatus());
+
+        btnTurnOn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    HashMap<String, Object> data = new HashMap<>();
+                    data.put("command_name", "device.command.turnon");
+                    publishMessage(mqttAndroidClient, data, 1, device.getMacAddress() + "/TX");
+                } catch (Exception e) {
+                    Log.e(TAG, "onClick: ", e);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            unSubscribe(mqttAndroidClient, device.getMacAddress() + "/RX");
+            unSubscribe(mqttAndroidClient, device.getMacAddress() + "/TX");
+        } catch (Exception e) {
+            Log.e(TAG, "onDestroy: ", e);
+        }
     }
 
     public void initMQTT() {
@@ -81,11 +137,12 @@ public class ControlDevicesFragment extends Fragment {
                 mqttAndroidClient.setCallback(new MqttCallbackExtended() {
                     @Override
                     public void connectComplete(boolean b, String s) {
-//                        try {
-//                            subscribe(mqttAndroidClient, "#", 1);
-//                        } catch (Exception e) {
-//                            Log.e(TAG, "connectComplete: ", e);
-//                        }
+                        try {
+                            subscribe(mqttAndroidClient, device.getMacAddress() + "/RX", 1);
+                            subscribe(mqttAndroidClient, device.getMacAddress() + "/TX", 1);
+                        } catch (Exception e) {
+                            Log.e(TAG, "connectComplete: ", e);
+                        }
                     }
 
                     @Override
@@ -99,7 +156,7 @@ public class ControlDevicesFragment extends Fragment {
 //                        for(int i =0; i < mqttMessage.getPayload().length; i++){
 //                            data += "--" + mqttMessage.getPayload()[i];
 //                        }
-//                        Log.d(TAG, "messageArrived: ");
+//                        Log.d(TAG, "messageArrived: " + mqttMessage.getPayload());
 //                        Log.d(TAG, "messageArrived: " + topic + "---" + data);
 //                        if(s.equals("60:01:94:69:4d:d5")){
                         if (mqttMessage != null) {
@@ -114,8 +171,14 @@ public class ControlDevicesFragment extends Fragment {
                             } else if (mqttMessage.getPayload().length == 2) {
                                 if (mqttMessage.getPayload()[0] == 33 && mqttMessage.getPayload()[1] == 1) {
                                     Log.d(TAG, "messageArrived: " + "turn on reply");
+                                    device.setStatus(Device.ON);
+                                    deviceRepository.update(device);
+                                    tvDeviceStatus.setText("" + Device.ON);
                                 } else if (mqttMessage.getPayload()[0] == 32 && mqttMessage.getPayload()[1] == 1) {
                                     Log.d(TAG, "messageArrived: " + "turn off reply");
+                                    device.setStatus(Device.OFF);
+                                    deviceRepository.update(device);
+                                    tvDeviceStatus.setText("" + Device.OFF);
                                 }
                             } else if (mqttMessage.getPayload().length > 2) {
                                 if (mqttMessage.getPayload()[0] == 16) {
@@ -183,13 +246,14 @@ public class ControlDevicesFragment extends Fragment {
     }
 
     public void publishMessage(@NonNull MqttAndroidClient client,
-                               @NonNull String msg, int qos, @NonNull String topic)
+                               @NonNull HashMap<String, Object> data, int qos, @NonNull String topic)
             throws MqttException, UnsupportedEncodingException {
-        byte[] encodedPayload = new byte[0];
-        encodedPayload = msg.getBytes("UTF-8");
-        MqttMessage message = new MqttMessage(encodedPayload);
+
+
+        MqttMessage message = new MqttMessage();
         message.setId(5866);
         message.setRetained(true);
+        message.setPayload(BudderflyMessageSerializer.toByteArray(data));
         message.setQos(qos);
         client.publish(topic, message);
     }
