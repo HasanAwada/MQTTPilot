@@ -1,0 +1,29 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.pc.budderflypilot.database.fragments.MainFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_centerInParent="true">
+
+        <Button
+            android:id="@+id/btnManageDevices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Manage Devices" />
+
+        <Button
+            android:id="@+id/btnControlDevices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/btnManageDevices"
+            android:text="Control Devices" />
+
+    </LinearLayout>
+
+
+</RelativeLayout>

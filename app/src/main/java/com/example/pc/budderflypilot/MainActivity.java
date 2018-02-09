@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void connectComplete(boolean b, String s) {
                         try {
-                            subscribe(mqttAndroidClient, "60:01:94:69:4d:d5", 1);
+//                            subscribe(mqttAndroidClient, "#", 1);
                         } catch (Exception e) {
                             Log.e(TAG, "connectComplete: ", e);
                         }
@@ -60,8 +60,13 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
+                    public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
+//                        String data = "";
+//                        for(int i =0; i < mqttMessage.getPayload().length; i++){
+//                            data += "--" + mqttMessage.getPayload()[i];
+//                        }
 //                        Log.d(TAG, "messageArrived: ");
+//                        Log.d(TAG, "messageArrived: " + topic + "---" + data);
 //                        if(s.equals("60:01:94:69:4d:d5")){
                         if (mqttMessage != null) {
                             if (mqttMessage.getPayload().length == 1) {
@@ -69,26 +74,22 @@ public class MainActivity extends AppCompatActivity {
                                     Log.d(TAG, "messageArrived: " + "turn on command");
                                 } else if (mqttMessage.getPayload()[0] == 32) {
                                     Log.d(TAG, "messageArrived: " + "turn off command");
+                                } else if (mqttMessage.getPayload()[0] == 16) {
+                                    Log.d(TAG, "messageArrived: " + "get measure request");
                                 }
-                            }/*else if(mqttMessage.getPayload().length == 2){
-                                    if(mqttMessage.getPayload()[0] == 33 && mqttMessage.getPayload()[1] == 1){
-                                        Log.d(TAG, "messageArrived: " + "turn on reply");
-                                    } else if()
-                                }*/
+                            } else if (mqttMessage.getPayload().length == 2) {
+                                if (mqttMessage.getPayload()[0] == 33 && mqttMessage.getPayload()[1] == 1) {
+                                    Log.d(TAG, "messageArrived: " + "turn on reply");
+                                } else if (mqttMessage.getPayload()[0] == 32 && mqttMessage.getPayload()[1] == 1) {
+                                    Log.d(TAG, "messageArrived: " + "turn off reply");
+                                } else if (mqttMessage.getPayload()[0] == 16) {
+                                    Log.d(TAG, "messageArrived: " + "get measure reply");
+                                }
+                            }
                         }
-//                        }
-//                        if (mqttMessage.getPayload()[0] == 33 && mqttMessage.getPayload().length == 1) {
-//                            Log.d(TAG, "messageArrived: " + "turn on command");
-//                        } else if (mqttMessage.getPayload()[0] == 33 && mqttMessage.getPayload().length == 2 && mqttMessage.getPayload()[1] == 1) {
-//                            Log.d(TAG, "messageArrived: " + "turn on reply");
-//                        } else if (mqttMessage.getPayload()[0] == 32 && mqttMessage.getPayload()[1] == 1) {
-//                            Log.d(TAG, "messageArrived: " + "turn off");
-//                        } else if (mqttMessage.getPayload()[0] == 16 && mqttMessage.getPayload()[1] == 49) {
-//                            Log.d(TAG, "messageArrived: " + "get measure");
-//                        } else {
-//                            Log.d(TAG, "messageArrived: " + s + "----" + mqttMessage.getPayload()[0] + "----" + mqttMessage.getPayload()[1]);
-//                        }
                     }
+
+//                    }
 
                     @Override
                     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
@@ -105,8 +106,34 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         if (mqttAndroidClient.isConnected()) {
                             String macAddress = ((EditText) findViewById(R.id.etMacAddress)).getText() != null ? ((EditText) findViewById(R.id.etMacAddress)).getText().toString() : "";
+                            if (macAddress.equals("#")) {
+                                subscribe(mqttAndroidClient, macAddress, 1);
+                            } else if (!macAddress.equals("")) {
+                                subscribe(mqttAndroidClient, macAddress + "/RX", 1);
+                                subscribe(mqttAndroidClient, macAddress + "/TX", 1);
+                            }
                             if (!macAddress.equals(""))
                                 subscribe(mqttAndroidClient, macAddress, 1);
+                        }
+
+                    } catch (Exception e) {
+                        Log.e(TAG, "onClick: ", e);
+                    }
+                }
+            });
+
+            findViewById(R.id.btnUnSubscribe).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    try {
+                        if (mqttAndroidClient.isConnected()) {
+                            String macAddress = ((EditText) findViewById(R.id.etMacAddress)).getText() != null ? ((EditText) findViewById(R.id.etMacAddress)).getText().toString() : "";
+                            if (macAddress.equals("#")) {
+                                unSubscribe(mqttAndroidClient, macAddress);
+                            } else if (!macAddress.equals("")) {
+                                unSubscribe(mqttAndroidClient, macAddress + "/RX");
+                                unSubscribe(mqttAndroidClient, macAddress + "/TX");
+                            }
                         }
 
                     } catch (Exception e) {
@@ -122,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MqttConnectOptions getMqttConnectionOption() {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setCleanSession(false);
+        mqttConnectOptions.setCleanSession(true);
         mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setWill("Last_will", "I am going offline".getBytes(), 1, true);
         //mqttConnectOptions.setUserName("username");

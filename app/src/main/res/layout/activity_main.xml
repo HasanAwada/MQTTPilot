@@ -32,5 +32,13 @@
         android:layout_centerHorizontal="true"
         android:text="subscribe" />
 
+    <Button
+        android:id="@+id/btnUnSubscribe"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_below="@+id/btnSubscribe"
+        android:layout_centerHorizontal="true"
+        android:text="Un Subscribe" />
+
 </RelativeLayout>
 
