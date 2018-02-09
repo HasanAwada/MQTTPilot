@@ -1,4 +1,4 @@
-package com.example.pc.budderflypilot.database.models;
+package com.example.pc.budderflypilot.database;
 
 import android.content.Context;
 

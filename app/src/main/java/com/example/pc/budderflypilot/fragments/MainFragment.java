@@ -1,4 +1,4 @@
-package com.example.pc.budderflypilot.database.fragments;
+package com.example.pc.budderflypilot.fragments;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,8 +9,8 @@ import android.view.ViewGroup;
 import com.example.pc.budderflypilot.MainActivity;
 import com.example.pc.budderflypilot.R;
 
-public class MainFragment extends Fragment {
 
+public class MainFragment extends Fragment {
     public static String TAG = MainFragment.class.getSimpleName();
 
     private MainActivity mainActivity;
@@ -21,10 +21,8 @@ public class MainFragment extends Fragment {
     }
 
 
-    public static MainFragment newInstance(String param1, String param2) {
+    public static MainFragment newInstance() {
         MainFragment fragment = new MainFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -32,6 +30,7 @@ public class MainFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mainActivity = (MainActivity) getActivity();
+
     }
 
     @Override
@@ -40,7 +39,17 @@ public class MainFragment extends Fragment {
         // Inflate the layout for this fragment
         if (view == null)
             view = inflater.inflate(R.layout.fragment_main, container, false);
+        initViews();
         return view;
+    }
+
+    private void initViews() {
+        view.findViewById(R.id.btnManageDevices).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mainActivity.getSupportFragmentManager().beginTransaction().replace(R.id.container, ManageDevicesFragment.newInstance(), MainFragment.class.getSimpleName()).commit();
+            }
+        });
     }
 
 }
