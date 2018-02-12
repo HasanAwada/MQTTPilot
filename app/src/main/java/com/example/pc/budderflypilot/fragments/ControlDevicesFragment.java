@@ -17,6 +17,7 @@ import com.example.pc.budderflypilot.R;
 import com.example.pc.budderflypilot.database.models.Device;
 import com.example.pc.budderflypilot.database.repositories.DeviceRepository;
 import com.example.pc.budderflypilot.utilities.BudderflyMessageSerializer;
+import com.example.pc.budderflypilot.utilities.Command;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
@@ -107,9 +108,18 @@ public class ControlDevicesFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 try {
-                    HashMap<String, Object> data = new HashMap<>();
-                    data.put("command_name", "device.command.turnon");
-                    publishMessage(mqttAndroidClient, data, 1, device.getMacAddress() + "/TX");
+                    turnOnOutlet();
+                } catch (Exception e) {
+                    Log.e(TAG, "onClick: ", e);
+                }
+            }
+        });
+
+        btnTurnOff.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    turnOffOutlet();
                 } catch (Exception e) {
                     Log.e(TAG, "onClick: ", e);
                 }
@@ -246,14 +256,12 @@ public class ControlDevicesFragment extends Fragment {
     }
 
     public void publishMessage(@NonNull MqttAndroidClient client,
-                               @NonNull HashMap<String, Object> data, int qos, @NonNull String topic)
+                               @NonNull byte[] data, int qos, @NonNull String topic)
             throws MqttException, UnsupportedEncodingException {
-
-
         MqttMessage message = new MqttMessage();
         message.setId(5866);
         message.setRetained(true);
-        message.setPayload(BudderflyMessageSerializer.toByteArray(data));
+        message.setPayload(data);
         message.setQos(qos);
         client.publish(topic, message);
     }
@@ -307,4 +315,28 @@ public class ControlDevicesFragment extends Fragment {
             }
         });
     }
+
+
+    public void turnOnOutlet() {
+        try {
+            String topic = "60:01:94:69:4d:d5/TX";
+            byte[] data = Command.getTurnOnData();
+            publishMessage(mqttAndroidClient, data, 1, topic);
+        } catch (Exception e) {
+            Log.e(TAG, "turnOnOutlet: ", e);
+        }
+    }
+
+    public void turnOffOutlet() {
+        try {
+            String topic = "60:01:94:69:4d:d5/TX";
+            byte[] data = Command.getTurnOffData();
+            publishMessage(mqttAndroidClient, data, 1, topic);
+        } catch (Exception e) {
+            Log.e(TAG, "turnOnOutlet: ", e);
+        }
+    }
+
+
+
 }
